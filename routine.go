@@ -1,4 +1,4 @@
-package wireproxy
+package awgproxy
 
 import (
 	"bytes"
@@ -8,10 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
-	"golang.zx2c4.com/wireguard/device"
 	"io"
 	"log"
 	"math/rand"
@@ -23,13 +19,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amnezia-vpn/amneziawg-go/device"
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
+
 	"github.com/sourcegraph/conc"
 	"github.com/things-go/go-socks5"
 	"github.com/things-go/go-socks5/bufferpool"
 
 	"net/netip"
 
-	"golang.zx2c4.com/wireguard/tun/netstack"
+	"github.com/amnezia-vpn/amneziawg-go/tun/netstack"
 )
 
 // errorLogger is the logger to print error message
@@ -202,7 +203,7 @@ func tcpClientForward(vt *VirtualTun, raddr *addressPort, conn net.Conn) {
 		return
 	}
 
-	tcpAddr := TCPAddrFromAddrPort(*target)
+	tcpAddr := net.TCPAddrFromAddrPort(*target)
 
 	sconn, err := vt.Tnet.DialTCP(tcpAddr)
 	if err != nil {
@@ -241,7 +242,7 @@ func STDIOTcpForward(vt *VirtualTun, raddr *addressPort) {
 		return
 	}
 
-	tcpAddr := TCPAddrFromAddrPort(*target)
+	tcpAddr := net.TCPAddrFromAddrPort(*target)
 	sconn, err := vt.Tnet.DialTCP(tcpAddr)
 	if err != nil {
 		errorLogger.Printf("TCP Client Tunnel to %s (%s): %s\n", target, tcpAddr, err.Error())
@@ -301,7 +302,7 @@ func tcpServerForward(vt *VirtualTun, raddr *addressPort, conn net.Conn) {
 		return
 	}
 
-	tcpAddr := TCPAddrFromAddrPort(*target)
+	tcpAddr := net.TCPAddrFromAddrPort(*target)
 
 	sconn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {

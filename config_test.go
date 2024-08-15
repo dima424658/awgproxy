@@ -1,8 +1,9 @@
-package wireproxy
+package awgproxy
 
 import (
-	"github.com/go-ini/ini"
 	"testing"
+
+	"github.com/go-ini/ini"
 )
 
 func loadIniConfig(config string) (*ini.File, error) {

@@ -50,7 +50,7 @@ Make sure you use the path for the config file above, not the one you downloaded
 from e.g. protonvpn.
 ```
 #!/bin/bash
-/Users/jonny/wireproxy/wireproxy -c /Users/jonny/vpntabs/ProtonUS.adblock.conf
+/Users/jonny/awgproxy/awgproxy -c /Users/jonny/vpntabs/ProtonUS.adblock.conf
 ```
 
 ## MacOS LaunchAgent

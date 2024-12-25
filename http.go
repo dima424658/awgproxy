@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -23,6 +24,25 @@ type HTTPServer struct {
 
 	authRequired bool
 	tlsRequired  bool
+	routeRegex   *regexp.Regexp
+}
+
+func (s *HTTPServer) needRoute(req *http.Request) bool {
+	hostname := req.URL.Hostname()
+	if s.routeRegex == nil {
+		s.routeRegex = regexp.MustCompile(`^([^\.]*)\.`)
+	}
+
+	for strings.Count(hostname, ".") > 0 {
+		if s.config.RouteHosts[hostname] {
+			log.Printf("route %s", hostname)
+			return true
+		}
+
+		hostname = s.routeRegex.ReplaceAllString(hostname, "")
+	}
+
+	return false
 }
 
 func (s *HTTPServer) authenticate(req *http.Request) (int, error) {
@@ -57,7 +77,11 @@ func (s *HTTPServer) handleConn(req *http.Request, conn net.Conn) (peer net.Conn
 		addr = net.JoinHostPort(addr, port)
 	}
 
-	peer, err = s.dial("tcp", addr)
+	if s.needRoute(req) {
+		peer, err = s.dial("tcp", addr)
+	} else {
+		peer, err = net.Dial("tcp", addr)
+	}
 	if err != nil {
 		return peer, fmt.Errorf("tun tcp dial failed: %w", err)
 	}
@@ -78,7 +102,12 @@ func (s *HTTPServer) handle(req *http.Request) (peer net.Conn, err error) {
 		addr = net.JoinHostPort(addr, port)
 	}
 
-	peer, err = s.dial("tcp", addr)
+	if s.needRoute(req) {
+		peer, err = s.dial("tcp", addr)
+	} else {
+		peer, err = net.Dial("tcp", addr)
+	}
+
 	if err != nil {
 		return peer, fmt.Errorf("tun tcp dial failed: %w", err)
 	}

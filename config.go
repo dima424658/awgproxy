@@ -1,15 +1,19 @@
 package awgproxy
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"io"
+	"log"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/go-ini/ini"
 
+	"net/http"
 	"net/netip"
 )
 
@@ -68,6 +72,7 @@ type HTTPConfig struct {
 	Password    string
 	CertFile    string
 	KeyFile     string
+	RouteHosts  map[string]bool
 }
 
 type Configuration struct {
@@ -530,6 +535,43 @@ func parseHTTPConfig(section *ini.Section) (RoutineSpawner, error) {
 
 	keyFile, _ := parseString(section, "KeyFile")
 	config.KeyFile = keyFile
+
+	config.RouteHosts = make(map[string]bool)
+
+	domainsUrl, err := parseString(section, "DomainsUrl")
+	if err == nil && domainsUrl != "" {
+		resp, err := http.Get(domainsUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		rd := bufio.NewReader(resp.Body)
+		for {
+			str, err := rd.ReadString('\n')
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				log.Printf("erra %s", err)
+				return nil, err
+			}
+
+			config.RouteHosts[strings.Trim(str, " \n\r")] = true
+		}
+	}
+
+	includeStr, err := parseString(section, "RouteInclude")
+	if err == nil {
+		for _, str := range strings.Split(includeStr, ",") {
+			config.RouteHosts[strings.Trim(str, " \n\r")] = true
+		}
+	}
+
+	excludeStr, err := parseString(section, "RouteExclude")
+	if err == nil {
+		for _, str := range strings.Split(excludeStr, ",") {
+			delete(config.RouteHosts, strings.Trim(str, " \n\r"))
+		}
+	}
 
 	return config, nil
 }
